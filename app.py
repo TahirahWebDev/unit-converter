@@ -172,8 +172,7 @@ def convert_energy(value, from_unit, to_unit):
 
 def convert_digital_storage(value, from_unit, to_unit):
     units = {
-        "bytes": 1, "kilobytes": 1 / 1024, "megabytes": 1 / (1024 ** 2),
-        "gigabytes": 1 / (1024 ** 3), "terabytes": 1 / (1024 ** 4),
+        "bytes": 1, "kilobytes": 1e-3, "megabytes": 1e-6, "gigabytes": 1e-9, "terabytes": 1e-12,
     }
     result = value * (units[to_unit] / units[from_unit])
     formula = f"({value} * {units[to_unit]} / {units[from_unit]}) = {result}"
@@ -181,57 +180,38 @@ def convert_digital_storage(value, from_unit, to_unit):
 
 def convert_data_transfer(value, from_unit, to_unit):
     units = {
-        "bits/second": 1, "kilobits/second": 1 / 1000, "megabits/second": 1 / 1e6,
-        "gigabits/second": 1 / 1e9, "bytes/second": 1 / 8,
+        "bits/second": 1, "kilobits/second": 1e-3, "megabits/second": 1e-6, "gigabits/second": 1e-9, "bytes/second": 1e-3,
     }
     result = value * (units[to_unit] / units[from_unit])
     formula = f"({value} * {units[to_unit]} / {units[from_unit]}) = {result}"
     return result, formula
 
-# General conversion function
-def convert(value, from_unit, to_unit, category):
-    conversion_functions = {
-        "Length": convert_length,
-        "Weight": convert_weight,
-        "Temperature": convert_temperature,
-        "Volume": convert_volume,
-        "Speed": convert_speed,
-        "Area": convert_area,
-        "Time": convert_time,
-        "Pressure": convert_pressure,
-        "Frequency": convert_frequency,
-        "Energy": convert_energy,
-        "Digital Storage": convert_digital_storage,
-        "Data Transfer Rate": convert_data_transfer,
-    }
-    if category in conversion_functions:
-        return conversion_functions[category](value, from_unit, to_unit)
-    return value, "No conversion available"
-
-# Sidebar unit category selection
-category = st.sidebar.selectbox("Select Unit Category", list(unit_categories.keys()))
-
 # Initialize session state variables
+if "category" not in st.session_state:
+    st.session_state.category = "Length"  # Default category
+
 if "value_input" not in st.session_state:
-    st.session_state.value_input = 1.0
+    st.session_state.value_input = 1.0  # Ensure it's a float
+
 if "converted_input" not in st.session_state:
-    default_from = unit_categories[category][0]
-    default_to = unit_categories[category][1]
-    st.session_state.converted_input, st.session_state.formula = convert(st.session_state.value_input, default_from, default_to, category)
+    st.session_state.converted_input, st.session_state.formula = convert_length(
+        st.session_state.value_input, unit_categories[st.session_state.category][0], unit_categories[st.session_state.category][1])
 
 # Callback functions
 def update_from_value():
-    st.session_state.converted_input, st.session_state.formula = convert(
-        st.session_state.value_input, st.session_state.from_unit, st.session_state.to_unit, category
-    )
+    st.session_state.converted_input, st.session_state.formula = convert_length(
+        st.session_state.value_input, st.session_state.from_unit, st.session_state.to_unit)
 
 def update_to_value():
-    st.session_state.value_input = convert(
-        st.session_state.converted_input, st.session_state.to_unit, st.session_state.from_unit, category
-    )
+    st.session_state.value_input = st.session_state.converted_input  # Update original value when converted value changes
+    st.session_state.converted_input, st.session_state.formula = convert_length(
+        st.session_state.value_input, st.session_state.from_unit, st.session_state.to_unit)
 
 # Layout
 col1, col2 = st.columns(2)
+
+# Sidebar to select category
+category = st.sidebar.selectbox("Select Category", list(unit_categories.keys()), key="category", index=0)
 
 with col1:
     from_unit = st.selectbox("From", unit_categories[category], key="from_unit", on_change=update_from_value)
